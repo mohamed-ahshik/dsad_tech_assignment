@@ -231,11 +231,12 @@ def build_ec_dataframe(df_raw: pd.DataFrame) -> pd.DataFrame:
     df["street_upper"] = df["street"].fillna("").str.strip().str.upper()
     df["town"] = df["street_upper"].apply(lambda s: _get_town(s, mapping_dict))
 
-    # Region mapping
+    # Region mapping (map may yield NaN → float dtype; coerce to string before .str)
     town_to_region = _load_town_to_region()
     df["region"] = (
         df["town"]
         .map(town_to_region)
+        .astype("string")
         .str.replace(" REGION", "", regex=False)
     )
 
