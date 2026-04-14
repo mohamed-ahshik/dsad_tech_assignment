@@ -39,6 +39,25 @@ source .venv/bin/activate
 
 ---
 
+## Model monitoring (planned)
+
+### Prediction quality
+
+| Metric | What it tells you |
+|---|---|
+| **RMSE** | Average error size for predicted **price per sqm** (same units as the target). Lower is better. |
+| **R²** | How much of the variance in actual prices the model explains (0–1 on held-out data). A sharp drop after retraining or over time suggests the model is no longer a good fit. |
+
+**How to use it here:** After each `/train`, you already get RMSE and R² per lifecycle model (Lease 94 MOP vs Lease 89 Privatised). For ongoing monitoring, recompute RMSE / R² on a **recent hold-out slice** or on **new URA rows** once real prices exist, and compare to the last training run.
+
+### Data drift (KL divergence)
+
+**KL divergence** compares two probability distributions (e.g. training-time vs recent prediction inputs). A larger KL on a feature means that feature’s distribution has shifted — the model may be less reliable until you retrain or refresh data.
+
+**How to use it here:** At train time, save a snapshot of key numeric inputs (e.g. `district`, `contractYear`, `area`, floor range). On each batch of new predictions or new DB rows, estimate the distribution of those same features and compute **KL(reference ‖ current)** per feature. Alert when KL exceeds a small threshold you tune from history.
+
+---
+
 ## Postgres Data Model
 
 Two tables with a one-to-many relationship: one **project** → many **transactions**.
