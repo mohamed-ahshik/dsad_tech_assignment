@@ -60,7 +60,7 @@ _INSERT_TRANSACTION = text("""
 
 
 def upsert_property(row: dict[str, Any]) -> str:
-    """Upsert a property row and return its UUID."""
+    """Upsert a single property row and return its UUID."""
     with get_connection() as conn:
         result = conn.execute(_INSERT_PROPERTY, row)
         return str(result.fetchone()[0])
@@ -70,6 +70,46 @@ def upsert_transaction(row: dict[str, Any]) -> None:
     """Upsert a single transaction row."""
     with get_connection() as conn:
         conn.execute(_INSERT_TRANSACTION, row)
+
+
+_BULK_INSERT_PROPERTY = text("""
+    INSERT INTO properties (project, street, market_segment, x, y)
+    VALUES (:project, :street, :market_segment, :x, :y)
+    ON CONFLICT (project, street)
+    DO UPDATE SET
+        market_segment = EXCLUDED.market_segment,
+        x              = EXCLUDED.x,
+        y              = EXCLUDED.y
+    RETURNING id, project, street
+""")
+
+_BULK_INSERT_TRANSACTION = text("""
+    INSERT INTO property_transactions
+        (property_id, property_type, district, tenure, type_of_sale,
+         no_of_units, price, nett_price, area, type_of_area, floor_range, contract_date)
+    VALUES
+        (:property_id, :property_type, :district, :tenure, :type_of_sale,
+         :no_of_units, :price, :nett_price, :area, :type_of_area, :floor_range, :contract_date)
+    ON CONFLICT (property_id, contract_date, area, price, floor_range, type_of_sale)
+    DO NOTHING
+""")
+
+
+def upsert_properties_bulk(rows: list[dict[str, Any]]) -> dict[tuple[str, str | None], str]:
+    """Bulk upsert properties, return mapping of (project, street) → id."""
+    if not rows:
+        return {}
+    with get_connection() as conn:
+        result = conn.execute(_BULK_INSERT_PROPERTY, rows)
+        return {(r.project, r.street): str(r.id) for r in result}
+
+
+def upsert_transactions_bulk(rows: list[dict[str, Any]]) -> None:
+    """Bulk upsert transactions in one round-trip."""
+    if not rows:
+        return
+    with get_connection() as conn:
+        conn.execute(_BULK_INSERT_TRANSACTION, rows)
 
 
 # ---------------------------------------------------------------------------

@@ -140,11 +140,24 @@ if page == "🔮 Predict Price":
 
 elif page == "🏋️ Train Model":
     st.title("🏋️ Train Prediction Models")
-    st.info(
-        "Training reads all EC transactions from the database, runs feature "
-        "engineering, and fits a Random Forest with RFECV feature selection "
-        "for both lifecycle stages. This takes **1–2 minutes**."
+
+    use_existing = st.toggle(
+        "Use existing data (skip database update)",
+        value=True,
+        help="When ON, trains directly from whatever EC transactions are already in the database. "
+             "Turn OFF to fetch fresh URA data first (go to Update Database page).",
     )
+
+    if use_existing:
+        st.info(
+            "Training will use EC transactions **already in the database**. "
+            "No URA API calls will be made. This takes **1–2 minutes**."
+        )
+    else:
+        st.warning(
+            "⚠️ This will first fetch all 4 URA batches from the live API and update the "
+            "database before training. Use the **Update Database** page for that instead."
+        )
 
     if st.button("🚀 Start Training", type="primary", use_container_width=True):
         result = None
