@@ -116,3 +116,15 @@ Two tables with a one-to-many relationship: one **project** → many **transacti
 - **Composite unique constraint on transactions** prevents duplicate records when the same URA batch is ingested more than once (`ON CONFLICT DO NOTHING`).
 - `type_of_sale` values follow URA's convention: `1` = New Sale, `2` = Sub Sale, `3` = Resale.
 - `contract_date` is stored as raw URA text (`MMYY`, e.g. `"0625"`) and parsed at query / feature-engineering time.
+
+---
+
+## Automating feature engineering, model selection, and monitoring
+
+- **Single pipeline, scheduled runs:** One job (cron/CI) runs ingest → the same preprocessing code → train, so feature engineering never diverges from what production uses.
+
+- **Time-based validation + auto model pick:** Split by `contract_date` (not only random), try a small set of models/hyperparams, and promote the one with best validation RMSE/R² into fixed artefact paths the API loads.
+
+- **Version everything:** Save a small manifest (git SHA, data cutoff date, row counts, chosen params, RMSE/R²) next to the joblib files so every deploy is auditable and comparable to the last run.
+
+- **Log predictions + nightly checks:** Store each prediction with inputs; nightly, compare new URA actuals to predictions (rolling RMSE) and compare input distributions to training (e.g. KL/PSI) — alert if metrics or drift cross thresholds.
