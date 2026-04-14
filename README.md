@@ -10,6 +10,35 @@ source .venv/bin/activate
 
 ---
 
+## Architecture
+
+```
+                        ┌─────────────────────────────────────┐
+                        │           Docker Compose             │
+                        │                                      │
+  User's browser ──────▶│  Streamlit  ──▶  FastAPI  ──▶  Postgres │
+                        │  :8501          :8000        :5432   │
+                        └─────────────────────────────────────┘
+                                             │
+                                             ▼
+                                        URA Public API
+                                    (data ingestion only)
+```
+
+| Service | Role |
+|---|---|
+| **Streamlit** | Frontend — Predict, Train, and Update Database pages |
+| **FastAPI** | Backend — exposes `/predict`, `/train`, `/ingest` endpoints |
+| **Postgres** | Local database — stores all URA property transactions |
+| **URA API** | External data source — fetched once during database update |
+
+**How it flows:**
+1. **Update Database** — FastAPI calls the URA API, normalises the data, and upserts it into Postgres.
+2. **Train** — FastAPI reads EC transactions from Postgres, engineers features, and trains two Random Forest models (saved to disk).
+3. **Predict** — FastAPI loads the saved models and returns a predicted price per sqm for the inputs provided.
+
+---
+
 ## Postgres Data Model
 
 Two tables with a one-to-many relationship: one **project** → many **transactions**.
