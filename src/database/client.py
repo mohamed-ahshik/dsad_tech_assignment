@@ -72,7 +72,7 @@ def upsert_transaction(row: dict[str, Any]) -> None:
         conn.execute(_INSERT_TRANSACTION, row)
 
 
-_BULK_INSERT_PROPERTY = text("""
+_UPSERT_PROPERTY_RETURNING = text("""
     INSERT INTO properties (project, street, market_segment, x, y)
     VALUES (:project, :street, :market_segment, :x, :y)
     ON CONFLICT (project, street)
@@ -96,16 +96,25 @@ _BULK_INSERT_TRANSACTION = text("""
 
 
 def upsert_properties_bulk(rows: list[dict[str, Any]]) -> dict[tuple[str, str | None], str]:
-    """Bulk upsert properties, return mapping of (project, street) → id."""
+    """Upsert properties in a single transaction, return mapping of (project, street) → id.
+
+    Executes one INSERT per row inside a shared transaction — much faster than
+    opening a new connection per row, while still supporting RETURNING.
+    """
     if not rows:
         return {}
+    id_map: dict[tuple[str, str | None], str] = {}
     with get_connection() as conn:
-        result = conn.execute(_BULK_INSERT_PROPERTY, rows)
-        return {(r.project, r.street): str(r.id) for r in result}
+        for row in rows:
+            result = conn.execute(_UPSERT_PROPERTY_RETURNING, row)
+            r = result.fetchone()
+            if r:
+                id_map[(r.project, r.street)] = str(r.id)
+    return id_map
 
 
 def upsert_transactions_bulk(rows: list[dict[str, Any]]) -> None:
-    """Bulk upsert transactions in one round-trip."""
+    """Bulk upsert transactions in one round-trip (executemany, no RETURNING needed)."""
     if not rows:
         return
     with get_connection() as conn:
