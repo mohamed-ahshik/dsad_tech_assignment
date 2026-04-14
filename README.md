@@ -128,3 +128,25 @@ Two tables with a one-to-many relationship: one **project** → many **transacti
 - **Version everything:** Save a small manifest (git SHA, data cutoff date, row counts, chosen params, RMSE/R²) next to the joblib files so every deploy is auditable and comparable to the last run.
 
 - **Log predictions + nightly checks:** Store each prediction with inputs; nightly, compare new URA actuals to predictions (rolling RMSE) and compare input distributions to training (e.g. KL/PSI) — alert if metrics or drift cross thresholds.
+
+---
+
+## Model governance (planned)
+
+### Access and secrets
+
+- Use different DB users: one that can write (ingest), one that only reads (training), least privilege for the app.
+- Put API keys or login on **train** and **ingest**; keep **predict** stricter than “open to the world” if the API is public.
+- Keep URA keys and passwords in env / a secret manager, not in git.
+
+### Versioning and promotion
+
+- Each train saves models in a **dated or versioned folder**, not only overwriting one file.
+- Save a small **registry file** (version id, date, metrics, git commit).
+- Only promote the new version to “live” after checks pass; keep the old version so you can **roll back** quickly.
+
+### Audit trail and oversight
+
+- Log each prediction: **inputs, output, model version, time** (and follow retention / privacy rules for addresses).
+- Log each train: **who ran it, data range, metrics, version id**.
+- Optional: require a **quick review** (e.g. ticket or checklist) before switching the live model if metrics changed a lot.
