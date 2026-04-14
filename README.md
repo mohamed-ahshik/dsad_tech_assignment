@@ -150,3 +150,13 @@ Two tables with a one-to-many relationship: one **project** → many **transacti
 - Log each prediction: **inputs, output, model version, time** (and follow retention / privacy rules for addresses).
 - Log each train: **who ran it, data range, metrics, version id**.
 - Optional: require a **quick review** (e.g. ticket or checklist) before switching the live model if metrics changed a lot.
+
+---
+
+## Future improvements
+
+- **Charts for model quality:** Add plots of **RMSE** and **R²** over time (or across train runs) so it is easier to see whether each lifecycle model is improving or degrading.
+
+- **Clearer lease-stage semantics:** The labels “94” and “89” refer to **remaining lease years** used to split MOP vs privatised ECs, not “94 years from completion” vs “89 years from completion” in plain language. Document this explicitly in the UI and README so stakeholders do not confuse them with total tenure length or calendar years alone.
+
+- **Hyperparameter search:** Use **GridSearchCV** (or RandomizedSearchCV) over the Random Forest (and related steps) to fine-tune parameters and seek better out-of-sample performance than the current defaults.
